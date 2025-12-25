@@ -1,0 +1,9 @@
+/out
+   /build
+   /.gradle
+   /.idea
+
+   *.iml
+   *.class
+   *.jar
+   *.war
