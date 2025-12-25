@@ -1,9 +1,13 @@
-/out
-   /build
-   /.gradle
-   /.idea
+# Gradle build output
+/build/
+/.gradle/
 
-   *.iml
-   *.class
-   *.jar
-   *.war
+# IntelliJ IDEA
+/.idea/
+*.iml
+
+# Java compile output
+*.class
+
+# OS
+.DS_Store
