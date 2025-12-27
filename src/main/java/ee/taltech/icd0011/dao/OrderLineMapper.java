@@ -11,9 +11,9 @@ final class OrderLineMapper {
     private static final String FIELD_PRICE = "price";
 
     private OrderLineMapper() {
-        // Utility class
     }
 
+    // Package-private for use by OrderDaoImpl
     static OrderLine createFromResultSet(ResultSet rs) throws SQLException {
         OrderLine line = new OrderLine();
         line.setItemName(rs.getString("item_name"));
