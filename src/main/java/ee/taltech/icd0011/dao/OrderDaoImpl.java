@@ -10,7 +10,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class OrderDaoImpl implements OrderDao {
 
@@ -34,6 +36,7 @@ public class OrderDaoImpl implements OrderDao {
                     long generatedId = rs.getLong("id");
                     order.setId(generatedId);
 
+                    // Save order lines if present
                     if (order.getOrderLines() != null && !order.getOrderLines().isEmpty()) {
                         saveOrderLines(conn, generatedId, order.getOrderLines());
                     }
@@ -66,43 +69,24 @@ public class OrderDaoImpl implements OrderDao {
 
     @Override
     public Order findById(Long id) {
-        String selectOrderSql = "SELECT id, order_number FROM orders WHERE id = ?";
-        String selectLinesSql = "SELECT item_name, quantity, price FROM order_lines WHERE order_id = ?";
+        String sql = "SELECT o.id, o.order_number, "
+                + "ol.id as line_id, ol.item_name, ol.quantity, ol.price "
+                + "FROM orders o "
+                + "LEFT JOIN order_lines ol ON o.id = ol.order_id "
+                + "WHERE o.id = ? "
+                + "ORDER BY ol.id";
 
         try (Connection conn = dataSource.getConnection();
-             PreparedStatement orderStmt = conn.prepareStatement(selectOrderSql);
-             PreparedStatement linesStmt = conn.prepareStatement(selectLinesSql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            orderStmt.setLong(1, id);
+            pstmt.setLong(1, id);
 
-            try (ResultSet rs = orderStmt.executeQuery()) {
-                if (rs.next()) {
-                    Order order = new Order();
-                    order.setId(rs.getLong("id"));
-                    order.setOrderNumber(rs.getString("order_number"));
-
-                    linesStmt.setLong(1, id);
-                    try (ResultSet linesRs = linesStmt.executeQuery()) {
-                        List<OrderLine> orderLines = new ArrayList<>();
-                        while (linesRs.next()) {
-                            OrderLine line = new OrderLine(
-                                    linesRs.getString("item_name"),
-                                    linesRs.getInt("quantity"),
-                                    linesRs.getInt("price")
-                            );
-                            orderLines.add(line);
-                        }
-                        order.setOrderLines(orderLines);
-                    }
-
-                    return order;
-                }
+            try (ResultSet rs = pstmt.executeQuery()) {
+                return extractSingleOrder(rs);
             }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to find order", e);
         }
-
-        return null;
     }
 
     @Override
@@ -119,7 +103,7 @@ public class OrderDaoImpl implements OrderDao {
                 Order order = new Order();
                 order.setId(rs.getLong("id"));
                 order.setOrderNumber(rs.getString("order_number"));
-                order.setOrderLines(null);
+                order.setOrderLines(new ArrayList<>());
                 orders.add(order);
             }
 
@@ -128,5 +112,158 @@ public class OrderDaoImpl implements OrderDao {
         }
 
         return orders;
+    }
+
+    @Override
+    public List<Order> findAllWithLines() {
+        String sql = "SELECT o.id, o.order_number, "
+                + "ol.id as line_id, ol.item_name, ol.quantity, ol.price "
+                + "FROM orders o "
+                + "LEFT JOIN order_lines ol ON o.id = ol.order_id "
+                + "ORDER BY o.id, ol.id";
+
+        try (Connection conn = dataSource.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            return extractMultipleOrders(rs);
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to fetch all orders with lines", e);
+        }
+    }
+
+    @Override
+    public boolean deleteById(Long id) {
+        String deleteSql = "DELETE FROM orders WHERE id = ?";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(deleteSql)) {
+
+            pstmt.setLong(1, id);
+            int rowsAffected = pstmt.executeUpdate();
+
+            return rowsAffected > 0;
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to delete order", e);
+        }
+    }
+
+    @Override
+    public List<Order> saveBatch(List<Order> orders) {
+        String insertOrderSql = "INSERT INTO orders (order_number) VALUES (?) RETURNING id";
+        List<Order> savedOrders = new ArrayList<>();
+
+        try (Connection conn = dataSource.getConnection()) {
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement orderStmt = conn.prepareStatement(insertOrderSql)) {
+
+                for (Order order : orders) {
+                    orderStmt.setString(1, order.getOrderNumber());
+
+                    try (ResultSet rs = orderStmt.executeQuery()) {
+                        if (rs.next()) {
+                            long generatedId = rs.getLong("id");
+                            order.setId(generatedId);
+
+                            if (order.getOrderLines() != null && !order.getOrderLines().isEmpty()) {
+                                saveOrderLinesBatch(conn, generatedId, order.getOrderLines());
+                            }
+
+                            savedOrders.add(order);
+                        }
+                    }
+                }
+
+                conn.commit();
+                return savedOrders;
+
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to save batch orders", e);
+        }
+    }
+
+    private void saveOrderLinesBatch(Connection conn, Long orderId, List<OrderLine> orderLines)
+            throws SQLException {
+        String insertLineSql = "INSERT INTO order_lines (order_id, item_name, quantity, price) "
+                + "VALUES (?, ?, ?, ?)";
+
+        try (PreparedStatement pstmt = conn.prepareStatement(insertLineSql)) {
+            for (OrderLine line : orderLines) {
+                pstmt.setLong(1, orderId);
+                pstmt.setString(2, line.getItemName());
+                pstmt.setInt(3, line.getQuantity());
+                pstmt.setInt(4, line.getPrice());
+                pstmt.addBatch();
+            }
+            pstmt.executeBatch();
+        }
+    }
+
+    private Order extractSingleOrder(ResultSet rs) throws SQLException {
+        Order order = null;
+        List<OrderLine> orderLines = new ArrayList<>();
+
+        while (rs.next()) {
+            if (order == null) {
+                order = new Order();
+                order.setId(rs.getLong("id"));
+                order.setOrderNumber(rs.getString("order_number"));
+            }
+
+            Long lineId = rs.getLong("line_id");
+            if (!rs.wasNull()) {
+                OrderLine line = new OrderLine(
+                        rs.getString("item_name"),
+                        rs.getInt("quantity"),
+                        rs.getInt("price")
+                );
+                orderLines.add(line);
+            }
+        }
+
+        if (order != null) {
+            order.setOrderLines(orderLines);
+        }
+
+        return order;
+    }
+
+    private List<Order> extractMultipleOrders(ResultSet rs) throws SQLException {
+        Map<Long, Order> orderMap = new LinkedHashMap<>();
+
+        while (rs.next()) {
+            Long orderId = rs.getLong("id");
+
+            Order order = orderMap.get(orderId);
+            if (order == null) {
+                order = new Order();
+                order.setId(orderId);
+                order.setOrderNumber(rs.getString("order_number"));
+                order.setOrderLines(new ArrayList<>());
+                orderMap.put(orderId, order);
+            }
+
+            Long lineId = rs.getLong("line_id");
+            if (!rs.wasNull()) {
+                OrderLine line = new OrderLine(
+                        rs.getString("item_name"),
+                        rs.getInt("quantity"),
+                        rs.getInt("price")
+                );
+                order.getOrderLines().add(line);
+            }
+        }
+
+        return new ArrayList<>(orderMap.values());
     }
 }

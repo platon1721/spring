@@ -52,8 +52,9 @@ public class OrderServlet extends HttpServlet {
                          HttpServletResponse response) throws IOException {
         String idParam = request.getParameter("id");
 
+        // If no id parameter, return all orders WITH lines
         if (idParam == null || idParam.isEmpty()) {
-            List<Order> orders = orderDao.findAll();
+            List<Order> orders = orderDao.findAllWithLines();
 
             response.setStatus(HttpServletResponse.SC_OK);
             response.setContentType("application/json");
@@ -63,6 +64,7 @@ public class OrderServlet extends HttpServlet {
             return;
         }
 
+        // If id parameter exists, return specific order
         try {
             Long id = Long.parseLong(idParam);
             Order order = orderDao.findById(id);
@@ -77,6 +79,31 @@ public class OrderServlet extends HttpServlet {
             response.setCharacterEncoding("UTF-8");
 
             response.getWriter().write(orderToJson(order));
+        } catch (NumberFormatException e) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        }
+    }
+
+    @Override
+    protected void doDelete(HttpServletRequest request,
+                            HttpServletResponse response) throws IOException {
+        String idParam = request.getParameter("id");
+
+        if (idParam == null || idParam.isEmpty()) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+
+        try {
+            Long id = Long.parseLong(idParam);
+            boolean deleted = orderDao.deleteById(id);
+
+            if (deleted) {
+                response.setStatus(HttpServletResponse.SC_NO_CONTENT);
+            } else {
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            }
+
         } catch (NumberFormatException e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         }
@@ -138,6 +165,10 @@ public class OrderServlet extends HttpServlet {
 
         String lineContent = s.substring(start, end);
 
+        if (lineContent.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+
         String[] lines = lineContent.split("\\},\\{");
 
         for (String line : lines) {
@@ -168,6 +199,10 @@ public class OrderServlet extends HttpServlet {
         }
 
         int start = keyPos + search.length();
+
+        if (start >= json.length()) {
+            return "";
+        }
 
         if (json.charAt(start) == '"') {
             start++;
@@ -203,11 +238,11 @@ public class OrderServlet extends HttpServlet {
     private static String orderToJson(Order order) {
         StringBuilder sb = new StringBuilder();
         sb.append("{\"id\":\"").append(order.getId()).append(JSON_QUOTE_COMMA);
-        sb.append("\"orderNumber\":\"").append(order.getOrderNumber()).append(JSON_QUOTE_COMMA);
+        sb.append("\"orderNumber\":\"").append(escapeJson(order.getOrderNumber())).append(JSON_QUOTE_COMMA);
 
         List<OrderLine> orderLines = order.getOrderLines();
         if (orderLines == null || orderLines.isEmpty()) {
-            sb.append("\"orderRows\":null");
+            sb.append("\"orderRows\":[]");
         } else {
             sb.append("\"orderRows\":[");
             for (int i = 0; i < orderLines.size(); i++) {
@@ -224,10 +259,21 @@ public class OrderServlet extends HttpServlet {
 
     private static String orderRowToJson(OrderLine orderLine) {
         StringBuilder sb = new StringBuilder();
-        sb.append("{\"itemName\":\"").append(orderLine.getItemName()).append(JSON_QUOTE_COMMA);
+        sb.append("{\"itemName\":\"").append(escapeJson(orderLine.getItemName())).append(JSON_QUOTE_COMMA);
         sb.append("\"quantity\":\"").append(orderLine.getQuantity()).append(JSON_QUOTE_COMMA);
         sb.append("\"price\":\"").append(orderLine.getPrice()).append("\"}");
 
         return sb.toString();
+    }
+
+    private static String escapeJson(String s) {
+        if (s == null) {
+            return "";
+        }
+        return s.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 }
