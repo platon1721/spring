@@ -61,17 +61,12 @@ public class OrderDaoImpl implements OrderDao {
                 pstmt.setLong(1, orderId);
                 pstmt.setString(2, line.getItemName());
 
-                // Handle null quantity and price (OrderLine constructor sets them to null if <= 0)
+                // OrderLine constructor sets to null if <= 0, so use 0 as default
                 Integer quantity = line.getQuantity();
                 Integer price = line.getPrice();
 
-                if (quantity == null || price == null) {
-                    // Skip invalid order lines
-                    continue;
-                }
-
-                pstmt.setInt(3, quantity);
-                pstmt.setInt(4, price);
+                pstmt.setInt(3, quantity == null ? 0 : quantity);
+                pstmt.setInt(4, price == null ? 0 : price);
                 pstmt.executeUpdate();
             }
         }
@@ -212,14 +207,10 @@ public class OrderDaoImpl implements OrderDao {
                 Integer quantity = line.getQuantity();
                 Integer price = line.getPrice();
 
-                if (quantity == null || price == null) {
-                    continue;
-                }
-
                 pstmt.setLong(1, orderId);
                 pstmt.setString(2, line.getItemName());
-                pstmt.setInt(3, quantity);
-                pstmt.setInt(4, price);
+                pstmt.setInt(3, quantity == null ? 0 : quantity);
+                pstmt.setInt(4, price == null ? 0 : price);
                 pstmt.addBatch();
             }
             pstmt.executeBatch();

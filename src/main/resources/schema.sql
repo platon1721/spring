@@ -13,7 +13,7 @@ CREATE TABLE order_lines (
                              id BIGSERIAL PRIMARY KEY,
                              order_id BIGINT NOT NULL,
                              item_name VARCHAR(255) NOT NULL,
-                             quantity INTEGER NOT NULL CHECK (quantity > 0),
-                             price INTEGER NOT NULL CHECK (price > 0),
+                             quantity INTEGER NOT NULL,
+                             price INTEGER NOT NULL,
                              FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 );
