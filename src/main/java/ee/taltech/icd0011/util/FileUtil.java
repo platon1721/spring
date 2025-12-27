@@ -7,7 +7,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
 public class FileUtil {
-
     public static String readFileFromClasspath(String pathOnClasspath) {
         try (InputStream is = Thread.currentThread()
                 .getContextClassLoader()
