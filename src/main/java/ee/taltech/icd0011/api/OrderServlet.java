@@ -196,7 +196,6 @@ public class OrderServlet extends HttpServlet {
                 sb.append(",");
             }
         }
-
         return sb.append("]}").toString();
     }
 
