@@ -34,10 +34,9 @@ public class OrderServlet extends HttpServlet {
         try (BufferedReader br = req.getReader()) {
             String line = br.readLine();
             while (line != null) {
-                line = br.readLine();
                 sb.append(line);
+                line = br.readLine();
             }
-
         }
         return sb.toString().trim();
     }
