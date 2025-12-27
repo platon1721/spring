@@ -16,6 +16,9 @@ import java.util.Map;
 
 public class OrderDaoImpl implements OrderDao {
 
+    private static final String FIELD_QUANTITY = "quantity";
+    private static final String FIELD_PRICE = "price";
+
     private final DataSource dataSource;
 
     public OrderDaoImpl(DataSource dataSource) {
@@ -230,34 +233,7 @@ public class OrderDaoImpl implements OrderDao {
 
             Long lineId = rs.getLong("line_id");
             if (!rs.wasNull()) {
-                OrderLine line = new OrderLine();
-                line.setItemName(rs.getString("item_name"));
-
-                // Use reflection or direct field access to bypass validation
-                // Since setters validate, we need to set fields directly
-                int quantity = rs.getInt("quantity");
-                int price = rs.getInt("price");
-
-                // Use setters first, then manually set if they were 0
-                line.setQuantity(quantity);
-                line.setPrice(price);
-
-                // If setters didn't set them (because they were <= 0), use reflection
-                try {
-                    if (line.getQuantity() == null) {
-                        java.lang.reflect.Field qField = OrderLine.class.getDeclaredField("quantity");
-                        qField.setAccessible(true);
-                        qField.set(line, quantity);
-                    }
-                    if (line.getPrice() == null) {
-                        java.lang.reflect.Field pField = OrderLine.class.getDeclaredField("price");
-                        pField.setAccessible(true);
-                        pField.set(line, price);
-                    }
-                } catch (Exception e) {
-                    // If reflection fails, keep null values
-                }
-
+                OrderLine line = createOrderLineFromResultSet(rs);
                 orderLines.add(line);
             }
         }
@@ -286,34 +262,46 @@ public class OrderDaoImpl implements OrderDao {
 
             Long lineId = rs.getLong("line_id");
             if (!rs.wasNull()) {
-                OrderLine line = new OrderLine();
-                line.setItemName(rs.getString("item_name"));
-
-                int quantity = rs.getInt("quantity");
-                int price = rs.getInt("price");
-
-                line.setQuantity(quantity);
-                line.setPrice(price);
-
-                try {
-                    if (line.getQuantity() == null) {
-                        java.lang.reflect.Field qField = OrderLine.class.getDeclaredField("quantity");
-                        qField.setAccessible(true);
-                        qField.set(line, quantity);
-                    }
-                    if (line.getPrice() == null) {
-                        java.lang.reflect.Field pField = OrderLine.class.getDeclaredField("price");
-                        pField.setAccessible(true);
-                        pField.set(line, price);
-                    }
-                } catch (Exception e) {
-                    // If reflection fails, keep null values
-                }
-
+                OrderLine line = createOrderLineFromResultSet(rs);
                 order.getOrderLines().add(line);
             }
         }
 
         return new ArrayList<>(orderMap.values());
+    }
+
+    private OrderLine createOrderLineFromResultSet(ResultSet rs) throws SQLException {
+        OrderLine line = new OrderLine();
+        line.setItemName(rs.getString("item_name"));
+
+        int quantity = rs.getInt(FIELD_QUANTITY);
+        int price = rs.getInt(FIELD_PRICE);
+
+        line.setQuantity(quantity);
+        line.setPrice(price);
+
+        // If setters didn't set them (because they were <= 0), use reflection
+        setFieldIfNull(line, FIELD_QUANTITY, quantity);
+        setFieldIfNull(line, FIELD_PRICE, price);
+
+        return line;
+    }
+
+    private void setFieldIfNull(OrderLine line, String fieldName, int value) {
+        try {
+            // Check if field is null
+            if (fieldName.equals(FIELD_QUANTITY) && line.getQuantity() == null) {
+                java.lang.reflect.Field field = OrderLine.class.getDeclaredField(fieldName);
+                field.setAccessible(true);
+                field.set(line, value);
+            } else if (fieldName.equals(FIELD_PRICE) && line.getPrice() == null) {
+                java.lang.reflect.Field field = OrderLine.class.getDeclaredField(fieldName);
+                field.setAccessible(true);
+                field.set(line, value);
+            }
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            // Log error but continue - field will remain null
+            System.err.println("Failed to set field " + fieldName + ": " + e.getMessage());
+        }
     }
 }
