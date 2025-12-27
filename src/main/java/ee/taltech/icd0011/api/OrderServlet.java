@@ -44,16 +44,24 @@ public class OrderServlet extends HttpServlet {
 
     private static String extractOrderNumber(String json) {
         int keyPos = json.indexOf("\"orderNumber\"");
-        if (keyPos < 0) return "";
+        if (keyPos < 0) {
+            return "";
+        }
 
         int colonPos = json.indexOf(':', keyPos);
-        if (colonPos < 0) return "";
+        if (colonPos < 0) {
+            return "";
+        }
 
         int firstQuote = json.indexOf('"', colonPos + 1);
-        if (firstQuote < 0) return "";
+        if (firstQuote < 0) {
+            return "";
+        }
 
         int secondQuote = json.indexOf('"', firstQuote + 1);
-        if (secondQuote < 0) return "";
+        if (secondQuote < 0) {
+            return "";
+        }
 
         return json.substring(firstQuote + 1, secondQuote);
     }
