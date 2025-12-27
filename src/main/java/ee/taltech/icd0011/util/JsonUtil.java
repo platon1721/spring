@@ -11,7 +11,6 @@ public final class JsonUtil {
     private static final String JSON_QUOTE_COMMA = "\",";
 
     private JsonUtil() {
-        // Utility class
     }
 
     public static String extractOrderNumber(String json) {
@@ -26,13 +25,34 @@ public final class JsonUtil {
         }
 
         int start = keyPos + "\"orderNumber\":\"".length();
-        int end = s.indexOf('"', start);
+        int end = findJsonStringEnd(s, start);
 
         if (end < 0) {
             return "";
         }
 
-        return s.substring(start, end);
+        return unescapeJson(s.substring(start, end));
+    }
+
+    private static int findJsonStringEnd(String s, int start) {
+        for (int i = start; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c == '"' && (i == 0 || s.charAt(i - 1) != '\\')) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public static String unescapeJson(String s) {
+        if (s == null) {
+            return "";
+        }
+        return s.replace("\\\"", "\"")
+                .replace("\\\\", "\\")
+                .replace("\\n", "\n")
+                .replace("\\r", "\r")
+                .replace("\\t", "\t");
     }
 
     public static List<OrderLine> extractOrderLines(String json) {
@@ -99,11 +119,11 @@ public final class JsonUtil {
 
         if (json.charAt(start) == '"') {
             start++;
-            int end = json.indexOf('"', start);
+            int end = findJsonStringEnd(json, start);
             if (end < 0) {
                 return "";
             }
-            return json.substring(start, end);
+            return unescapeJson(json.substring(start, end));
         } else {
             int end = start;
             while (end < json.length() && (Character.isDigit(json.charAt(end)) || json.charAt(end) == '-')) {
