@@ -18,6 +18,10 @@ import java.util.List;
 @WebServlet("/api/orders")
 public class OrderServlet extends HttpServlet {
 
+    private static final String CONTENT_TYPE_JSON = "application/json";
+    private static final String CHARSET_UTF8 = "UTF-8";
+    private static final String EMPTY_JSON = "{}";
+
     private OrderDao orderDao;
 
     @Override
@@ -41,15 +45,12 @@ public class OrderServlet extends HttpServlet {
             Order savedOrder = orderDao.save(newOrder);
 
             response.setStatus(HttpServletResponse.SC_OK);
-            response.setCharacterEncoding("UTF-8");
-            response.setContentType("application/json");
+            response.setCharacterEncoding(CHARSET_UTF8);
+            response.setContentType(CONTENT_TYPE_JSON);
 
             response.getWriter().write(JsonUtil.orderToJson(savedOrder));
         } catch (RuntimeException e) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
-            response.getWriter().write("{}");
+            sendErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST);
         }
     }
 
@@ -63,15 +64,12 @@ public class OrderServlet extends HttpServlet {
                 List<Order> orders = orderDao.findAllWithLines();
 
                 response.setStatus(HttpServletResponse.SC_OK);
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
+                response.setContentType(CONTENT_TYPE_JSON);
+                response.setCharacterEncoding(CHARSET_UTF8);
 
                 response.getWriter().write(JsonUtil.ordersToJson(orders));
             } catch (RuntimeException e) {
-                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
-                response.getWriter().write("{}");
+                sendErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             }
             return;
         }
@@ -81,23 +79,17 @@ public class OrderServlet extends HttpServlet {
             Order order = orderDao.findById(id);
 
             if (order == null) {
-                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
-                response.getWriter().write("{}");
+                sendErrorResponse(response, HttpServletResponse.SC_NOT_FOUND);
                 return;
             }
 
             response.setStatus(HttpServletResponse.SC_OK);
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
+            response.setContentType(CONTENT_TYPE_JSON);
+            response.setCharacterEncoding(CHARSET_UTF8);
 
             response.getWriter().write(JsonUtil.orderToJson(order));
         } catch (RuntimeException e) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
-            response.getWriter().write("{}");
+            sendErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST);
         }
     }
 
@@ -107,10 +99,7 @@ public class OrderServlet extends HttpServlet {
         String idParam = request.getParameter("id");
 
         if (idParam == null || idParam.isEmpty()) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
-            response.getWriter().write("{}");
+            sendErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
@@ -121,17 +110,11 @@ public class OrderServlet extends HttpServlet {
             if (deleted) {
                 response.setStatus(HttpServletResponse.SC_NO_CONTENT);
             } else {
-                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
-                response.getWriter().write("{}");
+                sendErrorResponse(response, HttpServletResponse.SC_NOT_FOUND);
             }
 
         } catch (RuntimeException e) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
-            response.getWriter().write("{}");
+            sendErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST);
         }
     }
 
@@ -145,5 +128,12 @@ public class OrderServlet extends HttpServlet {
             }
         }
         return sb.toString().trim();
+    }
+
+    private void sendErrorResponse(HttpServletResponse response, int statusCode) throws IOException {
+        response.setStatus(statusCode);
+        response.setContentType(CONTENT_TYPE_JSON);
+        response.setCharacterEncoding(CHARSET_UTF8);
+        response.getWriter().write(EMPTY_JSON);
     }
 }
