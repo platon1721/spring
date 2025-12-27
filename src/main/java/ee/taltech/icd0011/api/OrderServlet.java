@@ -47,6 +47,9 @@ public class OrderServlet extends HttpServlet {
             response.getWriter().write(JsonUtil.orderToJson(savedOrder));
         } catch (RuntimeException e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().write("{}");
         }
     }
 
@@ -66,6 +69,9 @@ public class OrderServlet extends HttpServlet {
                 response.getWriter().write(JsonUtil.ordersToJson(orders));
             } catch (RuntimeException e) {
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                response.getWriter().write("{}");
             }
             return;
         }
@@ -76,6 +82,9 @@ public class OrderServlet extends HttpServlet {
 
             if (order == null) {
                 response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                response.getWriter().write("{}");
                 return;
             }
 
@@ -86,6 +95,9 @@ public class OrderServlet extends HttpServlet {
             response.getWriter().write(JsonUtil.orderToJson(order));
         } catch (RuntimeException e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().write("{}");
         }
     }
 
@@ -96,6 +108,9 @@ public class OrderServlet extends HttpServlet {
 
         if (idParam == null || idParam.isEmpty()) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().write("{}");
             return;
         }
 
@@ -107,10 +122,16 @@ public class OrderServlet extends HttpServlet {
                 response.setStatus(HttpServletResponse.SC_NO_CONTENT);
             } else {
                 response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                response.getWriter().write("{}");
             }
 
         } catch (RuntimeException e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().write("{}");
         }
     }
 
