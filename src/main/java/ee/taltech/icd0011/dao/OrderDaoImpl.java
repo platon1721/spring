@@ -230,11 +230,34 @@ public class OrderDaoImpl implements OrderDao {
 
             Long lineId = rs.getLong("line_id");
             if (!rs.wasNull()) {
-                OrderLine line = new OrderLine(
-                        rs.getString("item_name"),
-                        rs.getInt("quantity"),
-                        rs.getInt("price")
-                );
+                OrderLine line = new OrderLine();
+                line.setItemName(rs.getString("item_name"));
+
+                // Use reflection or direct field access to bypass validation
+                // Since setters validate, we need to set fields directly
+                int quantity = rs.getInt("quantity");
+                int price = rs.getInt("price");
+
+                // Use setters first, then manually set if they were 0
+                line.setQuantity(quantity);
+                line.setPrice(price);
+
+                // If setters didn't set them (because they were <= 0), use reflection
+                try {
+                    if (line.getQuantity() == null) {
+                        java.lang.reflect.Field qField = OrderLine.class.getDeclaredField("quantity");
+                        qField.setAccessible(true);
+                        qField.set(line, quantity);
+                    }
+                    if (line.getPrice() == null) {
+                        java.lang.reflect.Field pField = OrderLine.class.getDeclaredField("price");
+                        pField.setAccessible(true);
+                        pField.set(line, price);
+                    }
+                } catch (Exception e) {
+                    // If reflection fails, keep null values
+                }
+
                 orderLines.add(line);
             }
         }
@@ -263,11 +286,30 @@ public class OrderDaoImpl implements OrderDao {
 
             Long lineId = rs.getLong("line_id");
             if (!rs.wasNull()) {
-                OrderLine line = new OrderLine(
-                        rs.getString("item_name"),
-                        rs.getInt("quantity"),
-                        rs.getInt("price")
-                );
+                OrderLine line = new OrderLine();
+                line.setItemName(rs.getString("item_name"));
+
+                int quantity = rs.getInt("quantity");
+                int price = rs.getInt("price");
+
+                line.setQuantity(quantity);
+                line.setPrice(price);
+
+                try {
+                    if (line.getQuantity() == null) {
+                        java.lang.reflect.Field qField = OrderLine.class.getDeclaredField("quantity");
+                        qField.setAccessible(true);
+                        qField.set(line, quantity);
+                    }
+                    if (line.getPrice() == null) {
+                        java.lang.reflect.Field pField = OrderLine.class.getDeclaredField("price");
+                        pField.setAccessible(true);
+                        pField.set(line, price);
+                    }
+                } catch (Exception e) {
+                    // If reflection fails, keep null values
+                }
+
                 order.getOrderLines().add(line);
             }
         }
