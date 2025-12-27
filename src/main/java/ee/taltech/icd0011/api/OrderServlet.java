@@ -20,7 +20,8 @@ import java.util.concurrent.atomic.AtomicLong;
 @WebServlet("/api/orders")
 public class OrderServlet extends HttpServlet {
 
-    private static final AtomicLong NEXT_ID = new AtomicLong(1);
+    private static final String JSON_QUOTE_COMMA = "\",";
+    private static final String JSON_QUOTE_COLON = "\":\"";
     @Override
     protected void doPost(HttpServletRequest request,
     HttpServletResponse response) throws IOException {
@@ -149,7 +150,7 @@ public class OrderServlet extends HttpServlet {
                     int price = Integer.parseInt(priceStr);
                     orderLines.add(new OrderLine(itemName, quantity, price));
                 } catch (NumberFormatException e) {
-
+                    System.err.println("Invalid number format: " + e.getMessage());
                 }
             }
 
@@ -185,8 +186,8 @@ public class OrderServlet extends HttpServlet {
 
     private static String orderToJson(Order order) {
         StringBuilder sb = new StringBuilder();
-        sb.append("{\"id\":\"").append(order.getId()).append("\",");
-        sb.append("\"orderNumber\":\"").append(order.getOrderNumber()).append("\",");
+        sb.append("{\"id\":\"").append(order.getId()).append(JSON_QUOTE_COMMA);
+        sb.append("\"orderNumber\":\"").append(order.getOrderNumber()).append(JSON_QUOTE_COMMA);
         sb.append("\"orderRows\":[");
 
         for (int i = 0; i < order.getOrderLines().size(); i++) {
@@ -196,15 +197,13 @@ public class OrderServlet extends HttpServlet {
             }
         }
 
-
-
         return sb.append("]}").toString();
     }
 
     private static String orderRowToJson(OrderLine orderLine) {
         StringBuilder sb = new StringBuilder();
-        sb.append("{\"itemName\":\"").append(orderLine.getItemName()).append("\",");
-        sb.append("\"quantity\":\"").append(orderLine.getQuantity()).append("\",");
+        sb.append("{\"itemName\":\"").append(orderLine.getItemName()).append(JSON_QUOTE_COMMA);
+        sb.append("\"quantity\":\"").append(orderLine.getQuantity()).append(JSON_QUOTE_COMMA);
         sb.append("\"price\":\"").append(orderLine.getPrice()).append("\"}");
 
         return sb.toString();
