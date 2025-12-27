@@ -79,7 +79,7 @@ public class OrderServlet extends HttpServlet {
             Order order = orderDao.findById(id);
 
             if (order == null) {
-                sendErrorResponse(response, HttpServletResponse.SC_NOT_FOUND);
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 return;
             }
 
@@ -99,7 +99,7 @@ public class OrderServlet extends HttpServlet {
         String idParam = request.getParameter("id");
 
         if (idParam == null || idParam.isEmpty()) {
-            sendErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST);
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
@@ -110,7 +110,7 @@ public class OrderServlet extends HttpServlet {
             if (deleted) {
                 response.setStatus(HttpServletResponse.SC_NO_CONTENT);
             } else {
-                sendErrorResponse(response, HttpServletResponse.SC_NOT_FOUND);
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             }
 
         } catch (RuntimeException e) {
