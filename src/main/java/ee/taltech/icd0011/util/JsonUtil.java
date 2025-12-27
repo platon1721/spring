@@ -130,7 +130,7 @@ public final class JsonUtil {
 
     public static String orderToJson(Order order) {
         StringBuilder sb = new StringBuilder();
-        sb.append("{\"id\":\"").append(order.getId()).append(JSON_QUOTE_COMMA);
+        sb.append("{\"id\":").append(order.getId()).append(",");
         sb.append("\"orderNumber\":\"").append(escapeJson(order.getOrderNumber())).append(JSON_QUOTE_COMMA);
 
         List<OrderLine> orderLines = order.getOrderLines();
@@ -153,8 +153,8 @@ public final class JsonUtil {
     public static String orderRowToJson(OrderLine orderLine) {
         StringBuilder sb = new StringBuilder();
         sb.append("{\"itemName\":\"").append(escapeJson(orderLine.getItemName())).append(JSON_QUOTE_COMMA);
-        sb.append("\"quantity\":\"").append(orderLine.getQuantity()).append(JSON_QUOTE_COMMA);
-        sb.append("\"price\":\"").append(orderLine.getPrice()).append("\"}");
+        sb.append("\"quantity\":").append(orderLine.getQuantity()).append(",");
+        sb.append("\"price\":").append(orderLine.getPrice()).append("}");
 
         return sb.toString();
     }
