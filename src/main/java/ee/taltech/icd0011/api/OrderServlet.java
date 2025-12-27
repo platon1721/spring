@@ -2,66 +2,84 @@ package ee.taltech.icd0011.api;
 
 import ee.taltech.icd0011.classes.Order;
 import ee.taltech.icd0011.classes.OrderLine;
-import ee.taltech.icd0011.helpers.IdGenerator;
+import ee.taltech.icd0011.dao.OrderDao;
+import ee.taltech.icd0011.dao.OrderDaoImpl;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import javax.sql.DataSource;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
-
 
 @WebServlet("/api/orders")
 public class OrderServlet extends HttpServlet {
 
     private static final String JSON_QUOTE_COMMA = "\",";
-    private static final String JSON_QUOTE_COLON = "\":\"";
+    private OrderDao orderDao;
+
+    @Override
+    public void init() {
+        DataSource dataSource = (DataSource) getServletContext().getAttribute("dataSource");
+        this.orderDao = new OrderDaoImpl(dataSource);
+    }
+
     @Override
     protected void doPost(HttpServletRequest request,
-    HttpServletResponse response) throws IOException {
+                          HttpServletResponse response) throws IOException {
         String body = readBody(request);
         String orderNumber = extractOrderNumber(body);
         List<OrderLine> orderLines = extractOrderLines(body);
-        long id = IdGenerator.nextId();
 
+        Order newOrder = new Order();
+        newOrder.setOrderNumber(orderNumber);
+        newOrder.setOrderLines(orderLines);
 
-        Order newOrder = new Order(id, orderNumber, orderLines);
-
-        ee.taltech.icd0011.api.OrderRepository.getOrders(getServletContext()).put(id, newOrder);
+        Order savedOrder = orderDao.save(newOrder);
 
         response.setStatus(HttpServletResponse.SC_OK);
         response.setCharacterEncoding("UTF-8");
         response.setContentType("application/json");
 
-        response.getWriter().write(orderToJson(newOrder));
+        response.getWriter().write(orderToJson(savedOrder));
     }
 
     @Override
     protected void doGet(HttpServletRequest request,
-            HttpServletResponse response) throws IOException {
+                         HttpServletResponse response) throws IOException {
         String idParam = request.getParameter("id");
-        if (idParam == null) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        }
-        Long id = Long.parseLong(idParam);
-        Order order = ee.taltech.icd0011.api.OrderRepository.getOrders(getServletContext()).get(id);
 
-        if (order == null) {
-            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+        if (idParam == null || idParam.isEmpty()) {
+            List<Order> orders = orderDao.findAll();
+
+            response.setStatus(HttpServletResponse.SC_OK);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+
+            response.getWriter().write(ordersToJson(orders));
             return;
         }
 
-        response.setStatus(HttpServletResponse.SC_OK);
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
+        try {
+            Long id = Long.parseLong(idParam);
+            Order order = orderDao.findById(id);
 
-        response.getWriter().write(orderToJson(order));
+            if (order == null) {
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
+
+            response.setStatus(HttpServletResponse.SC_OK);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+
+            response.getWriter().write(orderToJson(order));
+        } catch (NumberFormatException e) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        }
     }
 
     private static String readBody(HttpServletRequest req) throws IOException {
@@ -99,20 +117,12 @@ public class OrderServlet extends HttpServlet {
 
     private static List<OrderLine> extractOrderLines(String json) {
         List<OrderLine> orderLines = new ArrayList<>();
-        //"orderRows":[
-        //       { "itemName" : "CPU","quantity":2,"price":100},
-        //       {"itemName": "Motherboard", "quantity":3, "price":60}
-        //     ]
+
         if (json == null) {
             return new ArrayList<>();
         }
 
         String s = json.replaceAll("\\s+", "");
-
-        //"orderRows":[
-        //       {"itemName":"CPU","quantity":2,"price":100},
-        //       {"itemName":"Motherboard","quantity":3,"price":60}
-        //     ]
 
         int linePos = s.indexOf("\"orderRows\":[");
 
@@ -126,25 +136,17 @@ public class OrderServlet extends HttpServlet {
             return new ArrayList<>();
         }
 
-        String lineContent =  s.substring(start, end);
-        // String
-//       {"itemName":"CPU","quantity":2,"price":100},
-//       {"itemName":"Motherboard","quantity":3,"price":60}
+        String lineContent = s.substring(start, end);
 
         String[] lines = lineContent.split("\\},\\{");
 
-        // Array
-        // ["{"itemName":"CPU","quantity":2,"price":100}", "{"itemName":"Motherboard","quantity":3,"price":60}"]
-
         for (String line : lines) {
             String cleanLine = line.replace("}", "").replace("{", "");
-            // Array
-            // [""itemName":"CPU","quantity":2,"price":100", ""itemName":"Motherboard","quantity":3,"price":60"]
             String itemName = extractValue(cleanLine, "itemName");
             String quantityStr = extractValue(cleanLine, "quantity");
             String priceStr = extractValue(cleanLine, "price");
 
-            if(!itemName.isEmpty() && !quantityStr.isEmpty() && !priceStr.isEmpty()) {
+            if (!itemName.isEmpty() && !quantityStr.isEmpty() && !priceStr.isEmpty()) {
                 try {
                     int quantity = Integer.parseInt(quantityStr);
                     int price = Integer.parseInt(priceStr);
@@ -153,7 +155,6 @@ public class OrderServlet extends HttpServlet {
                     System.err.println("Invalid number format: " + e.getMessage());
                 }
             }
-
         }
 
         return orderLines;
@@ -184,19 +185,41 @@ public class OrderServlet extends HttpServlet {
         }
     }
 
+    private static String ordersToJson(List<Order> orders) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+
+        for (int i = 0; i < orders.size(); i++) {
+            sb.append(orderToJson(orders.get(i)));
+            if (i < orders.size() - 1) {
+                sb.append(",");
+            }
+        }
+
+        sb.append("]");
+        return sb.toString();
+    }
+
     private static String orderToJson(Order order) {
         StringBuilder sb = new StringBuilder();
         sb.append("{\"id\":\"").append(order.getId()).append(JSON_QUOTE_COMMA);
         sb.append("\"orderNumber\":\"").append(order.getOrderNumber()).append(JSON_QUOTE_COMMA);
-        sb.append("\"orderRows\":[");
 
-        for (int i = 0; i < order.getOrderLines().size(); i++) {
-            sb.append(orderRowToJson(order.getOrderLines().get(i)));
-            if (i < order.getOrderLines().size() - 1) {
-                sb.append(",");
+        List<OrderLine> orderLines = order.getOrderLines();
+        if (orderLines == null || orderLines.isEmpty()) {
+            sb.append("\"orderRows\":null");
+        } else {
+            sb.append("\"orderRows\":[");
+            for (int i = 0; i < orderLines.size(); i++) {
+                sb.append(orderRowToJson(orderLines.get(i)));
+                if (i < orderLines.size() - 1) {
+                    sb.append(",");
+                }
             }
+            sb.append("]");
         }
-        return sb.append("]}").toString();
+
+        return sb.append("}").toString();
     }
 
     private static String orderRowToJson(OrderLine orderLine) {
