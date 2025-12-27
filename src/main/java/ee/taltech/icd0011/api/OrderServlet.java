@@ -20,7 +20,7 @@ public class OrderServlet extends HttpServlet {
 
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String CHARSET_UTF8 = "UTF-8";
-    private static final String EMPTY_JSON = "{}";
+    private static final String EMPTY_JSON_OBJECT = "{}";
 
     private OrderDao orderDao;
 
@@ -113,7 +113,7 @@ public class OrderServlet extends HttpServlet {
                 sendErrorResponse(response, HttpServletResponse.SC_NOT_FOUND);
             }
 
-        } catch (RuntimeException e) {
+        } catch ( RuntimeException e) {
             sendErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST);
         }
     }
@@ -132,8 +132,5 @@ public class OrderServlet extends HttpServlet {
 
     private void sendErrorResponse(HttpServletResponse response, int statusCode) throws IOException {
         response.setStatus(statusCode);
-        response.setContentType(CONTENT_TYPE_JSON);
-        response.setCharacterEncoding(CHARSET_UTF8);
-        response.getWriter().write(EMPTY_JSON);
     }
 }
