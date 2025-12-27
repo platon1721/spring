@@ -32,10 +32,12 @@ public class OrderServlet extends HttpServlet {
     private static String readBody(HttpServletRequest req) throws IOException {
         StringBuilder sb = new StringBuilder();
         try (BufferedReader br = req.getReader()) {
-            String line;
-            while ((line = br.readLine()) != null) {
+            String line = br.readLine();
+            while (line != null) {
+                line = br.readLine();
                 sb.append(line);
             }
+
         }
         return sb.toString().trim();
     }
