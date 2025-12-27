@@ -13,8 +13,10 @@ final class OrderLineMapper {
     private OrderLineMapper() {
     }
 
-    // Package-private for use by OrderDaoImpl
-    static OrderLine createFromResultSet(ResultSet rs) throws SQLException {
+    /**
+     * Package-private for use by OrderDaoImpl.
+     */
+    public static OrderLine createFromResultSet(ResultSet rs) throws SQLException {
         OrderLine line = new OrderLine();
         line.setItemName(rs.getString("item_name"));
 
@@ -24,7 +26,6 @@ final class OrderLineMapper {
         line.setQuantity(quantity);
         line.setPrice(price);
 
-        // If setters didn't set them (because they were <= 0), use reflection
         setFieldIfNull(line, FIELD_QUANTITY, quantity);
         setFieldIfNull(line, FIELD_PRICE, price);
 
