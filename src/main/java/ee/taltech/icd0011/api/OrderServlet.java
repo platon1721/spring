@@ -30,7 +30,6 @@ public class OrderServlet extends HttpServlet {
         ApplicationContext springContext =
                 (ApplicationContext) getServletContext().getAttribute("springContext");
         this.orderDao = springContext.getBean(OrderDao.class);
-        this.objectMapper = new ObjectMapper();
     }
 
     @Override

@@ -13,26 +13,38 @@ import java.util.Map;
 
 public class OrderDaoSpring implements OrderDao {
 
+    private static final String TABLE_ORDERS = "orders";
+    private static final String TABLE_ORDER_LINES = "order_lines";
+
+    private static final String COLUMN_ID = "id";
+    private static final String COLUMN_ORDER_NUMBER = "order_number";
+    private static final String COLUMN_ORDER_ID = "order_id";
+    private static final String COLUMN_LINE_ID = "line_id";
+    private static final String COLUMN_ITEM_NAME = "item_name";
+    private static final String COLUMN_QUANTITY = "quantity";
+    private static final String COLUMN_PRICE = "price";
+
+    private static final String FIELD_QUANTITY = "quantity";
+    private static final String FIELD_PRICE = "price";
+
     private final JdbcTemplate jdbcTemplate;
     private final SimpleJdbcInsert insertOrder;
     private final SimpleJdbcInsert insertOrderLine;
 
-    private static final String ORDER_NUMBER_COLUMN = "order_number";
-
     public OrderDaoSpring(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
         this.insertOrder = new SimpleJdbcInsert(jdbcTemplate)
-                .withTableName("orders")
-                .usingGeneratedKeyColumns("id");
+                .withTableName(TABLE_ORDERS)
+                .usingGeneratedKeyColumns(COLUMN_ID);
         this.insertOrderLine = new SimpleJdbcInsert(jdbcTemplate)
-                .withTableName("order_lines")
-                .usingGeneratedKeyColumns("id");
+                .withTableName(TABLE_ORDER_LINES)
+                .usingGeneratedKeyColumns(COLUMN_ID);
     }
 
     @Override
     public Order save(Order order) {
         Map<String, Object> parameters = new HashMap<>();
-        parameters.put(ORDER_NUMBER_COLUMN, order.getOrderNumber());
+        parameters.put(COLUMN_ORDER_NUMBER, order.getOrderNumber());
 
         Number key = insertOrder.executeAndReturnKey(parameters);
         order.setId(key.longValue());
@@ -47,10 +59,10 @@ public class OrderDaoSpring implements OrderDao {
     private void saveOrderLines(Long orderId, List<OrderLine> orderLines) {
         for (OrderLine line : orderLines) {
             Map<String, Object> parameters = new HashMap<>();
-            parameters.put("order_id", orderId);
-            parameters.put("item_name", line.getItemName());
-            parameters.put("quantity", line.getQuantity() == null ? 0 : line.getQuantity());
-            parameters.put("price", line.getPrice() == null ? 0 : line.getPrice());
+            parameters.put(COLUMN_ORDER_ID, orderId);
+            parameters.put(COLUMN_ITEM_NAME, line.getItemName());
+            parameters.put(COLUMN_QUANTITY, line.getQuantity() == null ? 0 : line.getQuantity());
+            parameters.put(COLUMN_PRICE, line.getPrice() == null ? 0 : line.getPrice());
 
             insertOrderLine.execute(parameters);
         }
@@ -58,12 +70,12 @@ public class OrderDaoSpring implements OrderDao {
 
     @Override
     public Order findById(Long id) {
-        String sql = "SELECT o.id, o.order_number, " +
-                "ol.id as line_id, ol.item_name, ol.quantity, ol.price " +
-                "FROM orders o " +
-                "LEFT JOIN order_lines ol ON o.id = ol.order_id " +
-                "WHERE o.id = ? " +
-                "ORDER BY ol.id";
+        String sql = "SELECT o.id, o.order_number, "
+                + "ol.id as line_id, ol.item_name, ol.quantity, ol.price "
+                + "FROM orders o "
+                + "LEFT JOIN order_lines ol ON o.id = ol.order_id "
+                + "WHERE o.id = ? "
+                + "ORDER BY ol.id";
 
         return jdbcTemplate.query(sql, new Object[]{id}, rs -> {
             Order order = null;
@@ -72,20 +84,20 @@ public class OrderDaoSpring implements OrderDao {
             while (rs.next()) {
                 if (order == null) {
                     order = new Order();
-                    order.setId(rs.getLong("id"));
-                    order.setOrderNumber(rs.getString(ORDER_NUMBER_COLUMN));
+                    order.setId(rs.getLong(COLUMN_ID));
+                    order.setOrderNumber(rs.getString(COLUMN_ORDER_NUMBER));
                 }
 
-                long lineId = rs.getLong("line_id");
+                long lineId = rs.getLong(COLUMN_LINE_ID);
                 if (!rs.wasNull()) {
                     OrderLine line = new OrderLine();
-                    line.setItemName(rs.getString("item_name"));
+                    line.setItemName(rs.getString(COLUMN_ITEM_NAME));
 
-                    int quantity = rs.getInt("quantity");
-                    int price = rs.getInt("price");
+                    int quantity = rs.getInt(COLUMN_QUANTITY);
+                    int price = rs.getInt(COLUMN_PRICE);
 
-                    line.setQuantity(quantity);
-                    line.setPrice(price);
+                    setFieldDirectly(line, FIELD_QUANTITY, quantity);
+                    setFieldDirectly(line, FIELD_PRICE, price);
 
                     orderLines.add(line);
                 }
@@ -105,8 +117,8 @@ public class OrderDaoSpring implements OrderDao {
 
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             Order order = new Order();
-            order.setId(rs.getLong("id"));
-            order.setOrderNumber(rs.getString(ORDER_NUMBER_COLUMN));
+            order.setId(rs.getLong(COLUMN_ID));
+            order.setOrderNumber(rs.getString(COLUMN_ORDER_NUMBER));
             order.setOrderLines(new ArrayList<>());
             return order;
         });
@@ -114,37 +126,37 @@ public class OrderDaoSpring implements OrderDao {
 
     @Override
     public List<Order> findAllWithLines() {
-        String sql = "SELECT o.id, o.order_number, " +
-                "ol.id as line_id, ol.item_name, ol.quantity, ol.price " +
-                "FROM orders o " +
-                "LEFT JOIN order_lines ol ON o.id = ol.order_id " +
-                "ORDER BY o.id, ol.id";
+        String sql = "SELECT o.id, o.order_number, "
+                + "ol.id as line_id, ol.item_name, ol.quantity, ol.price "
+                + "FROM orders o "
+                + "LEFT JOIN order_lines ol ON o.id = ol.order_id "
+                + "ORDER BY o.id, ol.id";
 
         return jdbcTemplate.query(sql, rs -> {
             Map<Long, Order> orderMap = new LinkedHashMap<>();
 
             while (rs.next()) {
-                Long orderId = rs.getLong("id");
+                Long orderId = rs.getLong(COLUMN_ID);
 
                 Order order = orderMap.get(orderId);
                 if (order == null) {
                     order = new Order();
                     order.setId(orderId);
-                    order.setOrderNumber(rs.getString(ORDER_NUMBER_COLUMN));
+                    order.setOrderNumber(rs.getString(COLUMN_ORDER_NUMBER));
                     order.setOrderLines(new ArrayList<>());
                     orderMap.put(orderId, order);
                 }
 
-                long lineId = rs.getLong("line_id");
+                long lineId = rs.getLong(COLUMN_LINE_ID);
                 if (!rs.wasNull()) {
                     OrderLine line = new OrderLine();
-                    line.setItemName(rs.getString("item_name"));
+                    line.setItemName(rs.getString(COLUMN_ITEM_NAME));
 
-                    int quantity = rs.getInt("quantity");
-                    int price = rs.getInt("price");
+                    int quantity = rs.getInt(COLUMN_QUANTITY);
+                    int price = rs.getInt(COLUMN_PRICE);
 
-                    line.setQuantity(quantity);
-                    line.setPrice(price);
+                    setFieldDirectly(line, FIELD_QUANTITY, quantity);
+                    setFieldDirectly(line, FIELD_PRICE, price);
 
                     order.getOrderLines().add(line);
                 }
@@ -171,5 +183,15 @@ public class OrderDaoSpring implements OrderDao {
         }
 
         return savedOrders;
+    }
+
+    private void setFieldDirectly(OrderLine line, String fieldName, int value) {
+        try {
+            java.lang.reflect.Field field = OrderLine.class.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(line, value);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to set field " + fieldName, e);
+        }
     }
 }

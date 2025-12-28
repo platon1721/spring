@@ -3,7 +3,6 @@ package ee.taltech.icd0011.api;
 import ee.taltech.icd0011.classes.Order;
 import ee.taltech.icd0011.classes.OrderLine;
 import ee.taltech.icd0011.dao.OrderDao;
-import ee.taltech.icd0011.dao.OrderDaoImpl;
 import ee.taltech.icd0011.util.JsonUtil;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -12,7 +11,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.ApplicationContext;
 
 
-import javax.sql.DataSource;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
