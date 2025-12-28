@@ -76,7 +76,6 @@ public final class JsonUtil {
             first = false;
             sb.append("\"").append(e.getCode()).append("\"");
         }
-
         sb.append("]}");
         return sb.toString();
     }
