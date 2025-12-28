@@ -1,16 +1,17 @@
 package ee.taltech.icd0011.api;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import ee.taltech.icd0011.classes.Order;
 import ee.taltech.icd0011.classes.OrderLine;
 import ee.taltech.icd0011.dao.OrderDao;
-import ee.taltech.icd0011.dao.OrderDaoImpl;
 import ee.taltech.icd0011.util.JsonUtil;
+import ee.taltech.icd0011.validation.ValidationErrors;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.context.ApplicationContext;
 
-import javax.sql.DataSource;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.List;
@@ -20,14 +21,16 @@ public class OrderServlet extends HttpServlet {
 
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String CHARSET_UTF8 = "UTF-8";
-    private static final String ERROR_JSON = "{\"errors\":[]}";
 
     private OrderDao orderDao;
+    private ObjectMapper objectMapper;
 
     @Override
     public void init() {
-        DataSource dataSource = (DataSource) getServletContext().getAttribute("dataSource");
-        this.orderDao = new OrderDaoImpl(dataSource);
+        ApplicationContext springContext =
+                (ApplicationContext) getServletContext().getAttribute("springContext");
+        this.orderDao = springContext.getBean(OrderDao.class);
+        this.objectMapper = new ObjectMapper();
     }
 
     @Override
@@ -36,6 +39,21 @@ public class OrderServlet extends HttpServlet {
         try {
             String body = readBody(request);
             String orderNumber = JsonUtil.extractOrderNumber(body);
+
+            // Valideerimine
+            ValidationErrors validationErrors = new ValidationErrors();
+            if (orderNumber == null || orderNumber.length() < 2) {
+                validationErrors.addError("too_short_number");
+            }
+
+            if (validationErrors.hasErrors()) {
+                response.setStatus(400);
+                response.setContentType(CONTENT_TYPE_JSON);
+                response.setCharacterEncoding(CHARSET_UTF8);
+                objectMapper.writeValue(response.getWriter(), validationErrors);
+                return;
+            }
+
             List<OrderLine> orderLines = JsonUtil.extractOrderLines(body);
 
             Order newOrder = new Order();
@@ -50,7 +68,10 @@ public class OrderServlet extends HttpServlet {
 
             response.getWriter().write(JsonUtil.orderToJson(savedOrder));
         } catch (RuntimeException e) {
-            sendErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST);
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.setContentType(CONTENT_TYPE_JSON);
+            response.setCharacterEncoding(CHARSET_UTF8);
+            response.getWriter().write("{\"errors\":[]}");
         }
     }
 
@@ -69,7 +90,7 @@ public class OrderServlet extends HttpServlet {
 
                 response.getWriter().write(JsonUtil.ordersToJson(orders));
             } catch (RuntimeException e) {
-                sendErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             }
             return;
         }
@@ -89,7 +110,7 @@ public class OrderServlet extends HttpServlet {
 
             response.getWriter().write(JsonUtil.orderToJson(order));
         } catch (RuntimeException e) {
-            sendErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST);
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         }
     }
 
@@ -114,7 +135,7 @@ public class OrderServlet extends HttpServlet {
             }
 
         } catch (RuntimeException e) {
-            sendErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST);
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         }
     }
 
@@ -128,12 +149,5 @@ public class OrderServlet extends HttpServlet {
             }
         }
         return sb.toString().trim();
-    }
-
-    private void sendErrorResponse(HttpServletResponse response, int statusCode) throws IOException {
-        response.setStatus(statusCode);
-        response.setContentType(CONTENT_TYPE_JSON);
-        response.setCharacterEncoding(CHARSET_UTF8);
-        response.getWriter().write(ERROR_JSON);
     }
 }

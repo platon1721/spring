@@ -9,6 +9,8 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.context.ApplicationContext;
+
 
 import javax.sql.DataSource;
 import java.io.BufferedReader;
@@ -23,8 +25,9 @@ public class BulkOrderServlet extends HttpServlet {
 
     @Override
     public void init() {
-        DataSource dataSource = (DataSource) getServletContext().getAttribute("dataSource");
-        this.orderDao = new OrderDaoImpl(dataSource);
+        ApplicationContext springContext =
+                (ApplicationContext) getServletContext().getAttribute("springContext");
+        this.orderDao = springContext.getBean(OrderDao.class);
     }
 
     @Override
