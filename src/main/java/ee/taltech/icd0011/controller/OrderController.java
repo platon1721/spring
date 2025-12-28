@@ -39,21 +39,15 @@ public class OrderController {
                 }
             }
 
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(JsonUtil.validationErrorsToJson(errors));
-        }
-
-        String orderNumber = order.getOrderNumber();
-        if (orderNumber == null || orderNumber.length() < 2) {
-            ValidationErrors errors = new ValidationErrors();
-            errors.addError("too_short_number");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
                     .body(JsonUtil.validationErrorsToJson(errors));
         }
 
         Order saved = orderDao.save(order);
         return ResponseEntity.ok(JsonUtil.orderToJson(saved));
     }
+
 
     @GetMapping("/{id}")
     public ResponseEntity<String> getOrderById(@PathVariable("id") Long id) {
