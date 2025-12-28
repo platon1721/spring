@@ -35,7 +35,8 @@ public class FormController {
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(json);
         } else {
-            String formData = "id=" + savedOrder.getId() + "&orderNumber=" + orderNumber;
+            String formData = "id=" + savedOrder.getId()
+                    + "&orderNumber=" + orderNumber;
             return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                     .body(formData);
