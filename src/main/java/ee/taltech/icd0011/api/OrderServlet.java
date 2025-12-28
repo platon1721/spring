@@ -35,24 +35,18 @@ public class OrderServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request,
                           HttpServletResponse response) throws IOException {
+        String body = readBody(request);
+        String orderNumber = JsonUtil.extractOrderNumber(body);
+
+        if (orderNumber == null || orderNumber.length() < 2) {
+            response.setStatus(400);
+            response.setContentType(CONTENT_TYPE_JSON);
+            response.setCharacterEncoding(CHARSET_UTF8);
+            response.getWriter().write("{\"errors\":[{\"code\":\"too_short_number\"}]}");
+            return;
+        }
+
         try {
-            String body = readBody(request);
-            String orderNumber = JsonUtil.extractOrderNumber(body);
-
-            // Valideerimine
-            ValidationErrors validationErrors = new ValidationErrors();
-            if (orderNumber == null || orderNumber.length() < 2) {
-                validationErrors.addError("too_short_number");
-            }
-
-            if (validationErrors.hasErrors()) {
-                response.setStatus(400);
-                response.setContentType(CONTENT_TYPE_JSON);
-                response.setCharacterEncoding(CHARSET_UTF8);
-                objectMapper.writeValue(response.getWriter(), validationErrors);
-                return;
-            }
-
             List<OrderLine> orderLines = JsonUtil.extractOrderLines(body);
 
             Order newOrder = new Order();
