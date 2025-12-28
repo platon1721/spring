@@ -14,11 +14,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class old implements OrderDao {
+public class OldDao implements OrderDao {
 
     private final DataSource dataSource;
 
-    public old(DataSource dataSource) {
+    public OldDao(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
