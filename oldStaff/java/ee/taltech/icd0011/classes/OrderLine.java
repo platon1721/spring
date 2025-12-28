@@ -1,16 +1,16 @@
 package ee.taltech.icd0011.classes;
 
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 
 public class OrderLine {
 
     private String itemName;
-
+    
     @NotNull
     @Min(1)
     private Integer quantity;
-
+    
     @NotNull
     @Min(1)
     private Integer price;

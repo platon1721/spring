@@ -1,4 +1,4 @@
-package ee.taltech.icd0011.api;
+package ee.taltech.icd0011.helpers;
 
 import ee.taltech.icd0011.classes.Order;
 import jakarta.servlet.ServletContext;

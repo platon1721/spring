@@ -1,13 +1,13 @@
 package ee.taltech.icd0011.classes;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Order {
     private Long id;
     private String orderNumber;
-
+    
     @Valid
     private List<OrderLine> orderLines;
 

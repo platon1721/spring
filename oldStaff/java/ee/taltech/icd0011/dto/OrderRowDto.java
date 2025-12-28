@@ -1,27 +1,28 @@
-package ee.taltech.icd0011.classes;
+package ee.taltech.icd0011.dto;
 
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 
-public class OrderLine {
+public class OrderRowDto {
 
     private String itemName;
 
-    @NotNull
-    @Min(1)
+    @NotNull(message = "Quantity must be specified")
+    @Min(value = 1, message = "Quantity must be greater than 0")
     private Integer quantity;
 
-    @NotNull
-    @Min(1)
+    @NotNull(message = "Price must be specified")
+    @Min(value = 1, message = "Price must be greater than 0")
     private Integer price;
 
-    public OrderLine(String itemName, Integer quantity, Integer price) {
+    public OrderRowDto() {
+    }
+
+    public OrderRowDto(String itemName, Integer quantity, Integer price) {
         this.itemName = itemName;
         this.quantity = quantity;
         this.price = price;
     }
-
-    public OrderLine() { }
 
     public String getItemName() {
         return itemName;
