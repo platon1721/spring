@@ -26,7 +26,9 @@ public final class JsonUtil {
             sb.append(",\"orderLines\":[");
             boolean first = true;
             for (OrderLine line : order.getOrderLines()) {
-                if (!first) sb.append(",");
+                if (!first) {
+                    sb.append(",");
+                }
                 first = false;
                 sb.append("{");
                 sb.append("\"quantity\":").append(line.getQuantity()).append(",");
@@ -48,7 +50,9 @@ public final class JsonUtil {
         StringBuilder sb = new StringBuilder("[");
         boolean first = true;
         for (Order order : orders) {
-            if (!first) sb.append(",");
+            if (!first) {
+                sb.append(",");
+            }
             first = false;
             sb.append(orderToJson(order));
         }
@@ -66,7 +70,9 @@ public final class JsonUtil {
         boolean first = true;
 
         for (ValidationError e : errors.getErrors()) {
-            if (!first) sb.append(",");
+            if (!first) {
+                sb.append(",");
+            }
             first = false;
             sb.append("\"").append(e.getCode()).append("\"");
         }
