@@ -6,14 +6,17 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
+import org.springframework.validation.Validator;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import javax.sql.DataSource;
 
 @Configuration
 @EnableWebMvc
 @ComponentScan(basePackages = "ee.taltech.icd0011")
-public class MvcConfig {
+public class MvcConfig implements WebMvcConfigurer {
 
     @Bean
     public DataSource dataSource() {
@@ -26,5 +29,10 @@ public class MvcConfig {
     @Bean
     public JdbcTemplate jdbcTemplate(DataSource dataSource) {
         return new JdbcTemplate(dataSource);
+    }
+
+    @Override
+    public Validator getValidator() {
+        return new LocalValidatorFactoryBean();
     }
 }

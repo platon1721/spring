@@ -31,10 +31,10 @@ public class OrderController {
             ValidationErrors errors = new ValidationErrors();
 
             for (FieldError error : bindingResult.getFieldErrors()) {
-                String field = error.getField();
-                if (field.endsWith("quantity")) {
+                String f = error.getField();
+                if (f != null && f.endsWith("quantity")) {
                     errors.addError("invalid_quantity");
-                } else if (field.endsWith("price")) {
+                } else if (f != null && f.endsWith("price")) {
                     errors.addError("invalid_price");
                 }
             }
