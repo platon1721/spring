@@ -17,6 +17,8 @@ public class OrderDaoSpring implements OrderDao {
     private final SimpleJdbcInsert insertOrder;
     private final SimpleJdbcInsert insertOrderLine;
 
+    private static final String ORDER_NUMBER_COLUMN = "order_number";
+
     public OrderDaoSpring(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
         this.insertOrder = new SimpleJdbcInsert(jdbcTemplate)
@@ -30,7 +32,7 @@ public class OrderDaoSpring implements OrderDao {
     @Override
     public Order save(Order order) {
         Map<String, Object> parameters = new HashMap<>();
-        parameters.put("order_number", order.getOrderNumber());
+        parameters.put(ORDER_NUMBER_COLUMN, order.getOrderNumber());
 
         Number key = insertOrder.executeAndReturnKey(parameters);
         order.setId(key.longValue());
@@ -71,7 +73,7 @@ public class OrderDaoSpring implements OrderDao {
                 if (order == null) {
                     order = new Order();
                     order.setId(rs.getLong("id"));
-                    order.setOrderNumber(rs.getString("order_number"));
+                    order.setOrderNumber(rs.getString(ORDER_NUMBER_COLUMN));
                 }
 
                 long lineId = rs.getLong("line_id");
@@ -104,7 +106,7 @@ public class OrderDaoSpring implements OrderDao {
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             Order order = new Order();
             order.setId(rs.getLong("id"));
-            order.setOrderNumber(rs.getString("order_number"));
+            order.setOrderNumber(rs.getString(ORDER_NUMBER_COLUMN));
             order.setOrderLines(new ArrayList<>());
             return order;
         });
@@ -128,7 +130,7 @@ public class OrderDaoSpring implements OrderDao {
                 if (order == null) {
                     order = new Order();
                     order.setId(orderId);
-                    order.setOrderNumber(rs.getString("order_number"));
+                    order.setOrderNumber(rs.getString(ORDER_NUMBER_COLUMN));
                     order.setOrderLines(new ArrayList<>());
                     orderMap.put(orderId, order);
                 }
